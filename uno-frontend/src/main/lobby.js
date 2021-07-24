@@ -12,7 +12,6 @@ function Lobby({ socket }) {
   const params = useLocation();
   const [display, setDisplay] = useState({ display: "none" });
   const [owner, setOwner] = useState(false);
-  // const [players, setPlayer] = useState([]);
 
   const { players, setPlayer } = useContext(PlayersContext);
   const { name } = useContext(MainContext);
@@ -50,11 +49,21 @@ function Lobby({ socket }) {
     }
   }, [owner, params]);
 
+  useEffect(() => {
+    socket.on("play", () => {
+      history.push("/play");
+    });
+  });
+
   const cekLogin = () => {
     if (!params.state) {
       return false;
     }
     return true;
+  };
+
+  const start = () => {
+    socket.emit("start");
   };
 
   if (cekLogin()) {
@@ -76,6 +85,7 @@ function Lobby({ socket }) {
           id="start-game"
           className="btn btn-light mt-3 w-100"
           style={display}
+          onClick={start}
         >
           Mulai
         </button>

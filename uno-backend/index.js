@@ -1,7 +1,7 @@
 const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
-// const Game = require("./Game");
+const Game = require("./game");
 const {
   addUser,
   getUser,
@@ -9,6 +9,8 @@ const {
   getUsers,
   updateUsers,
   getJumlah,
+  deleteRoom,
+  playStatus,
 } = require("./users");
 
 const app = express();
@@ -31,7 +33,22 @@ io.on("connection", (socket) => {
 
   socket.on("start", () => {
     const user = getUser(socket.id);
-    const jumlahPlayer = get;
+    const users = getUsers(user.room);
+    if (users.length >= 2 && users.length < 10) {
+      io.in(user.room).emit("play");
+      new Game(users, user.room);
+      playStatus(user.room);
+      // deleteRoom(user.room);
+    } else {
+      io.in(user.id).emit("notification", {
+        title: "Pemain tidak cukup",
+      });
+    }
+  });
+
+  socket.on("chatSend", (data) => {
+    const user = getUser(socket.id);
+    io.in(user.room).emit("chatComing", data);
   });
 
   socket.on("changeOwner", () => {

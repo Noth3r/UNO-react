@@ -1,20 +1,85 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { useHistory } from "react-router-dom";
 import "../style/main.scss";
+import { MainContext } from "../mainContext";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 function Main({ socket }) {
+  const [discardedCard, setDiscardedCard] = useState(
+    process.env.PUBLIC_URL + "/cards/0-0.png"
+  );
+  const [messages, setMessages] = useState([]);
+  const { name } = useContext(MainContext);
+
+  const history = useHistory();
+  window.onpopstate = (e) => logout();
+
+  useEffect(() => {
+    if (!name) return history.push("/");
+  }, [history, name]);
+
+  useEffect(() => {
+    socket.on("notification", (notif) => {
+      if (notif?.title === "Someone just left") {
+        MySwal.fire({
+          title: "Seseorang Terputus dari Server",
+          confirmButtonText: "Ok",
+        }).then(() => {
+          history.push("/");
+          history.go(0);
+        });
+      }
+    });
+  });
+
+  const logout = () => {
+    history.push("/");
+    history.go(0);
+  };
+
+  const closeForm = () => {
+    document.getElementById("myForm").style.display = "none";
+  };
+  const openForm = () => {
+    document.getElementById("myForm").style.display = "block";
+  };
+
+  const chat = () => {
+    const msg = document.querySelector("#usermsg").value;
+    document.querySelector("#usermsg").value = "";
+    const player = name + ": ";
+    const today = new Date();
+    let minute = today.getMinutes();
+    if (minute.toString().length === 1) {
+      minute = "0" + minute;
+    }
+    const time =
+      today.getHours() + ":" + minute + ":" + today.getSeconds() + " ";
+    const hasil = { msg, player, time };
+    socket.emit("chatSend", hasil);
+  };
+  useEffect(() => {
+    socket.on("chatComing", (hasil) => {
+      setMessages((oldArr) => [...oldArr, hasil]);
+    });
+  }, [socket]);
+
   return (
-    <div id="game" class="container mt-5">
+    <div id="game" className="container mt-5">
       <h1>Game</h1>
-      <div class="row">
-        <div class="col-2">
+      <div className="row">
+        <div className="col-2">
           <img
             alt="discarded"
             id="discarded-card"
-            src={process.env.PUBLIC_URL + "/cards/0-0.png"}
+            src={discardedCard}
             width="100%"
           />
         </div>
-        <div class="col-2">
+        <div className="col-2">
           <img
             alt="draw"
             id="draw"
@@ -23,24 +88,24 @@ function Main({ socket }) {
           />
         </div>
       </div>
-      <ul class="list-group mt-2" id="card-count"></ul>
-      <div class="alert alert-success mt-2" role="alert" id="msg"></div>
-      <div class="card mt-2">
-        <div class="card-body">
-          <div class="row row-cols-4" id="card-list"></div>
+      <ul className="list-group mt-2" id="card-count"></ul>
+      <div className="alert alert-success mt-2" role="alert" id="msg"></div>
+      <div className="card mt-2">
+        <div className="card-body">
+          <div className="row row-cols-4" id="card-list"></div>
         </div>
       </div>
       <div id="notif">
-        <div class="msgln">
+        <div className="msgln">
           <b>Chat Notification</b>
         </div>
       </div>
-      <button class="open-button" onclick="openForm()">
+      <button className="open-button" onClick={openForm}>
         Chat
       </button>
 
-      <div class="chat-popup" id="myForm">
-        <div id="login" class="form-container">
+      <div className="chat-popup" id="myForm">
+        <div id="login" className="form-container">
           <h1 id="h1chat">Login</h1>
           <input
             autoComplete="off"
@@ -48,14 +113,30 @@ function Main({ socket }) {
             type="text"
             placeholder="Masukkan Nama Anda"
           />
-          <button type="submit" id="submitmsg" class="btn" onclick="login()">
+          <button type="submit" id="submitmsg" className="btn">
             Login
           </button>
         </div>
-        <div id="chat" class="form-container">
+        <div id="chat" className="form-container">
           <h1 id="h1chat">Chat</h1>
 
-          <div id="chatbox"></div>
+          <div id="chatbox">
+            {messages.length > 0 ? (
+              messages.map((msg, i) => {
+                return (
+                  <div key={i} className="msgln">
+                    {" "}
+                    <span className="chat-time">{msg.time}</span>
+                    <b className="user-name">{msg.player}</b>
+                    {msg.msg}
+                    <br></br>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="msgln"></div>
+            )}
+          </div>
           <input
             autoComplete="off"
             name="usermsg"
@@ -63,10 +144,10 @@ function Main({ socket }) {
             id="usermsg"
             placeholder="Type message..."
           />
-          <button type="submit" id="submitmsg" class="btn" onclick="chat()">
+          <button type="submit" id="submitmsg" className="btn" onClick={chat}>
             Send
           </button>
-          <button type="button" class="btn cancel" onclick="closeForm()">
+          <button type="button" className="btn cancel" onClick={closeForm}>
             Close
           </button>
         </div>
