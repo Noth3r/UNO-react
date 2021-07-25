@@ -3,5 +3,4 @@
 #### This project is still ongoing
 
 #### TODO
-* Front End => Fix main.js
-* Back End => Fix game.js, socket.io, and memory leak
+* Back End => Fix socket.io memory leak when play again
