@@ -4,4 +4,4 @@
 
 #### TODO
 * Front End => Fix main.js
-* Back End => Fix game.js and socket
+* Back End => Fix game.js, socket.io, and memory leak
