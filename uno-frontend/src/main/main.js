@@ -5,6 +5,7 @@ import { MainContext } from "../mainContext";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { SocketContext } from "../socket";
+import { PlayersContext } from "../playersContext";
 import swal from "sweetalert";
 
 const MySwal = withReactContent(Swal);
@@ -12,11 +13,13 @@ const MySwal = withReactContent(Swal);
 function Main() {
   const socket = useContext(SocketContext);
   const [discardedCard, setDiscardedCard] = useState("/cards/0-0.png");
+  const { setPlayer } = useContext(PlayersContext);
   const [messages, setMessages] = useState([]);
-  const { name, room, owner } = useContext(MainContext);
+  const { name, room, owner, setPlayAgain, setOwner } = useContext(MainContext);
   const [cards, setCards] = useState([]);
   const [msg, setMsg] = useState("");
   const [cardCount, setCardCount] = useState({});
+  const [notif, setNotif] = useState("Chat Notification");
 
   const backupName = name;
   const backupRoom = room;
@@ -47,7 +50,6 @@ function Main() {
 
   useEffect(() => {
     socket.on("end", (data) => {
-      // socket.emit("win");
       MySwal.fire({
         title: "Permainan Berakhir",
         text: data + " memenangkan permainan",
@@ -58,14 +60,16 @@ function Main() {
         }).then((value) => {
           switch (value) {
             case "yes":
+              setOwner(false);
               const playAgain = true;
               const name = backupName;
+              const owners = false;
               socket.emit(
                 "login",
                 {
                   name,
                   room,
-                  owner,
+                  owners,
                   playAgain,
                 },
                 (error) => {
@@ -78,12 +82,13 @@ function Main() {
                       history.go(0);
                     });
                   }
+                  setPlayAgain(true);
                   history.push({
                     pathname: `/lobby/${room}`,
                     state: {
                       name: backupName,
-                      owner: owner,
                       room: room,
+                      owner: owners,
                     },
                   });
                 }
@@ -97,11 +102,21 @@ function Main() {
         });
       });
     });
-  }, [backupName, backupRoom, history, owner, room, socket]);
+  }, [
+    backupName,
+    backupRoom,
+    history,
+    owner,
+    room,
+    socket,
+    setPlayer,
+    setPlayAgain,
+    setOwner,
+  ]);
 
   useEffect(() => {
-    socket.on("updateUser", (data) => {
-      setCardCount(cardCount);
+    socket.on("updateCardsCount", (data) => {
+      setCardCount(data);
     });
   }, [cardCount, socket]);
 
@@ -162,17 +177,36 @@ function Main() {
 
   useEffect(() => {
     socket.on("chatComing", (hasil) => {
-      setMessages((oldArr) => [...oldArr, hasil]);
+      setNotif(hasil);
+      setMessages((oldArr) => [hasil, ...oldArr]);
     });
   }, [socket]);
 
   const play = (i) => {
-    console.log(i);
     socket.emit("play", i);
   };
 
   const draw = () => {
     socket.emit("draw");
+  };
+
+  const notifFunc = () => {
+    if (notif === "Chat Notification") {
+      return (
+        <div className="msgln">
+          <b> {notif}</b>
+        </div>
+      );
+    } else {
+      return (
+        <div className="msgln">
+          <span className="chat-time">{notif.time}</span>
+          <b className="user-name">{notif.player}</b>
+          {notif.msg}
+          <br></br>
+        </div>
+      );
+    }
   };
 
   return (
@@ -198,7 +232,13 @@ function Main() {
         </div>
       </div>
       <ul className="list-group mt-2" id="card-count">
-        {Object.entries(cardCount)}
+        {Object.entries(cardCount).map((player, i) => {
+          return (
+            <li className="list-group-item" key={i}>
+              {player[0]} - {player[1]} Kartu
+            </li>
+          );
+        })}
       </ul>
       <div className="alert alert-success mt-2" role="alert" id="msg">
         {msg}
@@ -256,11 +296,7 @@ function Main() {
           </div>
         </div>
       </div>
-      <div id="notif">
-        <div className="msgln">
-          <b>Chat Notification</b>
-        </div>
-      </div>
+      <div id="notif">{notifFunc()}</div>
       <button className="open-button" onClick={openForm}>
         Chat
       </button>

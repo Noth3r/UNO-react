@@ -14,8 +14,12 @@ function Lobby() {
   const [display, setDisplay] = useState({ display: "none" });
 
   const { players } = useContext(PlayersContext);
-  const { name, owner, setOwner } = useContext(MainContext);
+  const { name, owner, setOwner, playAgain, setName } = useContext(MainContext);
   window.onpopstate = (e) => logout();
+
+  useEffect(() => {
+    setName(params.state.name);
+  }, [setName, params]);
 
   const logout = () => {
     history.push("/");
@@ -24,6 +28,24 @@ function Lobby() {
   useEffect(() => {
     if (!name) return history.push("/");
   }, [history, name]);
+
+  useEffect(() => {
+    socket.on("disconnect", () => {
+      setOwner(false);
+    });
+  });
+
+  useEffect(() => {
+    socket.on("changeOwner", () => {
+      setOwner(true);
+    });
+  }, [socket, setOwner]);
+
+  useEffect(() => {
+    socket.on("notOwner", () => {
+      setOwner(false);
+    });
+  }, [socket, setOwner]);
 
   useEffect(() => {
     socket.on("notification", (notif) => {
@@ -62,7 +84,7 @@ function Lobby() {
   };
 
   const start = () => {
-    socket.emit("start");
+    socket.emit("start", playAgain);
   };
 
   if (cekLogin()) {

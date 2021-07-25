@@ -10,7 +10,7 @@ const MySwal = withReactContent(Swal);
 
 function Homepage() {
   const socket = useContext(SocketContext);
-  const { name, setName, room, setRoom } = useContext(MainContext);
+  const { name, setName, room, setRoom, setOwner } = useContext(MainContext);
   const { players, setPlayer } = useContext(PlayersContext);
 
   useEffect(() => {
@@ -74,6 +74,7 @@ function Homepage() {
         });
         return (document.querySelector("#room-name-input").value = "");
       }
+      setOwner(false);
       history.push({
         pathname: `/lobby/${room}`,
         state: {
@@ -88,7 +89,12 @@ function Homepage() {
   return (
     <div id="start" className="container mt-5">
       <h1>Uno Game</h1>
-      <a href="carabermain.txt" target="_blank" className="btn btn-light">
+      <a
+        href={process.env.PUBLIC_URL + "/carabermain.txt"}
+        target="_blank"
+        rel="noreferrer"
+        className="btn btn-light"
+      >
         Cara Bermain
       </a>
       <div className="row mt-2">

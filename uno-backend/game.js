@@ -117,18 +117,11 @@ class Game {
       [null, 14],
     ];
     this.card = [...this.awal];
-    this.chat();
+    // this.chat();
     this.acak(this.card);
     this.shuffle(this.players);
     this.updateDiscarded(this.getRandomCard(false));
     this.playerInit();
-  }
-  chat() {
-    this.players.forEach((player) => {
-      player.socket.on("chatSend", (data) => {
-        this.io.in(this.room).emit("chatComing", data);
-      });
-    });
   }
 
   playerInit() {
@@ -138,7 +131,6 @@ class Game {
         .in(this.room)
         .emit("msg", this.players[0].name + " sedang berjalan");
       player.socket.on("play", (index) => {
-        console.log(index);
         if (isNaN(index)) {
           this.play(player, index[0], index[1]);
         } else {
@@ -267,8 +259,15 @@ class Game {
     this.io.in(player.id).emit("updateCards", player.cards);
     if (player.cards.length === 0) {
       this.io.in(this.room).emit("end", player.name);
+      this.updateCardsCount();
+      this.players.forEach((player) => {
+        player.socket.removeAllListeners("play");
+        player.socket.removeAllListeners("draw");
+        player.socket.removeAllListeners("disconnect");
+      });
+    } else {
+      this.updateCardsCount();
     }
-    this.updateCardsCount();
   }
 
   updateDiscarded(card) {
