@@ -1,9 +1,11 @@
 class Game {
-  constructor(players, room, io) {
+  constructor(players, room, io, socket) {
+    this.socket = socket;
+    this.io = io;
     this.players = players;
     this.room = room;
-    // this.turn = 0;
-    // this.reverse = false;
+    this.turn = 0;
+    this.reverse = false;
     this.awal = [
       [0, 0],
       [0, 1],
@@ -115,10 +117,75 @@ class Game {
       [null, 14],
     ];
     this.card = [...this.awal];
-    // this.acak(this.card);
+    this.chat();
+    this.acak(this.card);
     this.shuffle(this.players);
-    // this.updateDiscarded(this.getRandomCard(false));
-    // this.playerInit();
+    this.updateDiscarded(this.getRandomCard(false));
+    this.playerInit();
+  }
+  chat() {
+    this.players.forEach((player) => {
+      player.socket.on("chatSend", (data) => {
+        this.io.in(this.room).emit("chatComing", data);
+      });
+    });
+  }
+
+  playerInit() {
+    this.players.forEach((player) => {
+      this.updateCards(player);
+      this.io
+        .in(this.room)
+        .emit("msg", this.players[0].name + " sedang berjalan");
+      player.socket.on("play", (index) => {
+        console.log(index);
+        if (isNaN(index)) {
+          this.play(player, index[0], index[1]);
+        } else {
+          this.play(player, index);
+        }
+      });
+      player.socket.on("draw", () => {
+        this.draw(player);
+      });
+      player.socket.on("disconnect", () => {
+        this.io.in(this.room).emit("dc", {
+          title: "Someone just left",
+          description: `${player.name} terputus dari server`,
+        });
+      });
+    });
+  }
+
+  play(player, cardIndex, cardHitam = null) {
+    if (player === this.players[this.turn]) {
+      let card = player.cards[cardIndex];
+      if (this.checkCard(card)) {
+        player.cards.splice(cardIndex, 1);
+        if (card[1] >= 13) {
+          card[0] = cardHitam;
+          this.updateTurn();
+          this.updateDiscarded(card);
+          this.updateCards(player);
+        } else {
+          if (card[1] === 11) {
+            if (this.players.length > 2) {
+              this.reverse = !this.reverse;
+            } else {
+              this.updateTurn();
+            }
+          }
+          if (card[1] === 10) {
+            this.updateTurn();
+            this.updateTurn();
+          } else {
+            this.updateTurn();
+          }
+          this.updateDiscarded(card);
+          this.updateCards(player);
+        }
+      }
+    }
   }
 
   acak(array) {
@@ -191,9 +258,79 @@ class Game {
   updateCardsCount() {
     let playersCard = {};
     this.players.forEach((player) => {
-      playersCard.player.name = player.cards.length;
+      playersCard[player.name] = player.cards.length;
     });
-    io.in(this.room).emit("updateCardsCount", playersCard);
+    this.io.in(this.room).emit("updateCardsCount", playersCard);
+  }
+
+  updateCards(player) {
+    this.io.in(player.id).emit("updateCards", player.cards);
+    if (player.cards.length === 0) {
+      this.io.in(this.room).emit("end", player.name);
+    }
+    this.updateCardsCount();
+  }
+
+  updateDiscarded(card) {
+    this.discarded = card;
+    if (card[1] === 12) {
+      for (let i = 0; i < 2; i++) {
+        this.players[this.turn].cards.push(this.getRandomCard());
+      }
+      this.updateCards(this.players[this.turn]);
+      this.io
+        .in(this.room)
+        .emit("alert", this.players[this.turn].name + " mengambil 2 kartu");
+      this.updateTurn();
+    } else if (card[1] === 14) {
+      for (let i = 0; i < 4; i++) {
+        this.players[this.turn].cards.push(this.getRandomCard());
+      }
+      this.updateCards(this.players[this.turn]);
+      this.io
+        .in(this.room)
+        .emit("alert", this.players[this.turn].name + " mengambil 4 kartu");
+      this.updateTurn();
+    }
+    this.io.in(this.room).emit("updateDiscarded", this.discarded);
+  }
+
+  updateTurn() {
+    if (!this.reverse) {
+      if (this.turn < this.players.length - 1) {
+        this.turn++;
+      } else {
+        this.turn = 0;
+      }
+    } else {
+      if (this.turn > 0) {
+        this.turn--;
+      } else {
+        this.turn = this.players.length - 1;
+      }
+    }
+    this.io
+      .in(this.room)
+      .emit("msg", this.players[this.turn].name + " sedang berjalan");
+  }
+
+  checkCard(card) {
+    if (card[1] < 13) {
+      if (card[0] === this.discarded[0]) return true;
+      if (card[1] === this.discarded[1]) return true;
+      return false;
+    }
+    return true;
+  }
+
+  draw(player) {
+    if (player === this.players[this.turn]) {
+      let card = this.getRandomCard();
+      player.cards.push(card);
+      this.io.in(this.room).emit("alert", player.name + " mengambil kartu");
+      this.updateCards(player);
+      this.updateTurn();
+    }
   }
 }
 

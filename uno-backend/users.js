@@ -1,6 +1,6 @@
 let users = [];
 
-const addUser = (id, name, room, owner) => {
+const addUser = (id, name, room, owner, socket) => {
   room = parseInt(room);
   const existingRoom = users.find((user) => user.room === room);
   let jumlah = 0;
@@ -19,7 +19,7 @@ const addUser = (id, name, room, owner) => {
   if (existingRoom?.status == "Play")
     return { error: "Room Sudah Memulai Permainan" };
 
-  const user = { id, name, room, owner };
+  const user = { id, name, room, owner, socket };
   users.push(user);
   return { user };
 };
@@ -34,7 +34,22 @@ const deleteUser = (id) => {
   if (index !== -1) return users.splice(index, 1)[0];
 };
 
-const getUsers = (room) => users.filter((user) => user.room === room);
+const getUsers = (room, big = false) => {
+  const players = users.filter((user) => user.room === room);
+  if (big) {
+    return players;
+  }
+  const baru = players.map((player) => {
+    return {
+      id: player.id,
+      name: player.name,
+      room: player.room,
+      owner: player.owner,
+      status: player?.status,
+    };
+  });
+  return baru;
+};
 
 const updateUsers = (id) => {
   return users.find((user) => {

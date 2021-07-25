@@ -20,6 +20,23 @@
   color: #555;
 }
 
+.swal-footer {
+  flex: auto;
+  text-align: center;
+  justify-content: space-around;
+  width: auto;
+  height: auto;
+}
+.swal-button-container {
+  width: 100px;
+}
+
+.swal-button {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
 /* The popup chat - hidden by default */
 .chat-popup {
   display: none;

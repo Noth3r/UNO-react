@@ -4,13 +4,10 @@ import "./index.scss";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import "bootstrap/dist/css/bootstrap.min.css";
-import io from "socket.io-client";
-
-const socket = io();
 
 ReactDOM.render(
   <React.StrictMode>
-    <App socket={socket} />
+    <App />
   </React.StrictMode>,
   document.getElementById("root")
 );

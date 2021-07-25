@@ -6,27 +6,30 @@ import Lobby from "./main/lobby";
 import Main from "./main/main";
 import { MainProvider } from "./mainContext";
 import { PlayersProvider } from "./playersContext";
+import { SocketProvider } from "./socket";
 
-function App(props) {
+function App() {
   return (
-    <MainProvider>
-      <PlayersProvider>
-        <Router>
-          <Switch>
-            {/* <Route component={Default} /> */}
-            <Route path="/" exact>
-              <Homepage socket={props.socket} />
-            </Route>
-            <Route path="/lobby/:room">
-              <Lobby socket={props.socket} />
-            </Route>
-            <Route path="/play">
-              <Main socket={props.socket} />
-            </Route>
-          </Switch>
-        </Router>
-      </PlayersProvider>
-    </MainProvider>
+    <SocketProvider>
+      <MainProvider>
+        <PlayersProvider>
+          <Router>
+            <Switch>
+              {/* <Route component={Default} /> */}
+              <Route path="/" exact>
+                <Homepage />
+              </Route>
+              <Route path="/lobby/:room">
+                <Lobby />
+              </Route>
+              <Route path="/play">
+                <Main />
+              </Route>
+            </Switch>
+          </Router>
+        </PlayersProvider>
+      </MainProvider>
+    </SocketProvider>
   );
 }
 export default App;

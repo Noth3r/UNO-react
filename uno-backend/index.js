@@ -18,37 +18,61 @@ const server = http.createServer(app);
 const io = socketio(server);
 
 io.on("connection", (socket) => {
-  socket.on("login", ({ name, room, owner = false }, callback) => {
-    const { user, error } = addUser(socket.id, name, room, owner);
-    if (error) return callback(error);
-    console.log(user);
-    socket.join(user.room);
-    socket.in(user.room).emit("joinedRoom", {
-      name: user.name,
-      owner: owner,
-    });
-    io.in(user.room).emit("users", getUsers(user.room));
-    callback();
-  });
+  socket.on(
+    "login",
+    ({ name, room, owner = false, playAgain = false }, callback) => {
+      room = parseInt(room);
+      if (playAgain) {
+        if (getJumlah(room) == 0) {
+          owner = true;
+        }
+      }
+      console.log(name, room, owner, playAgain);
+      const { user, error } = addUser(socket.id, name, room, owner, socket);
+      if (error) return callback(error);
+      socket.join(user.room);
+      io.in(user.room).emit("users", getUsers(user.room));
+      if (playAgain) {
+        if (owner) {
+          updateUsers(socket.id);
+        }
+      }
+      callback();
+    }
+  );
+
+  // socket.on("win", () => {
+  //   const user = deleteUser(socket.id);
+  //   console.log(user);
+  //   if (user) {
+  //     io.in(user.room).emit("users", getUsers(user.room));
+  //   }
+  // });
+
+  // socket.on("playAgain", ({ name, room, owner = false }, callback) => {
+  //   if (getJumlah == 0) {
+  //     owner = true;
+  //   }
+  //   const { user, error } = addUser(socket.id, name, room, owner, socket);
+  //   if (error) return callback(error);
+  //   socket.join(user.room);
+  //   io.in(user.room).emit("users", getUsers);
+  //   callback();
+  // });
 
   socket.on("start", () => {
     const user = getUser(socket.id);
-    const users = getUsers(user.room);
+    const users = getUsers(user.room, true);
     if (users.length >= 2 && users.length < 10) {
       io.in(user.room).emit("play");
-      new Game(users, user.room);
+      new Game(users, user.room, io, socket);
       playStatus(user.room);
-      // deleteRoom(user.room);
+      deleteRoom(user.room);
     } else {
       io.in(user.id).emit("notification", {
         title: "Pemain tidak cukup",
       });
     }
-  });
-
-  socket.on("chatSend", (data) => {
-    const user = getUser(socket.id);
-    io.in(user.room).emit("chatComing", data);
   });
 
   socket.on("changeOwner", () => {
@@ -59,13 +83,19 @@ io.on("connection", (socket) => {
     console.log("User disconnected");
     const user = deleteUser(socket.id);
     if (user) {
-      console.log(user.room);
+      // if (user.status == "Play") {
+      //   io.in(user.room).emit("dc", {
+      //     title: "Someone just left",
+      //     description: `${user.name} terputus dari server`,
+      //   });
+      // } else {
       io.in(user.room).emit("notification", {
         title: "Someone just left",
         description: `${user.name} just left the room`,
         owner: user.owner,
       });
       io.in(user.room).emit("users", getUsers(user.room));
+      // }
     }
   });
 });

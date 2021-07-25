@@ -4,13 +4,12 @@ import withReactContent from "sweetalert2-react-content";
 import { useHistory } from "react-router-dom";
 import { MainContext } from "../mainContext";
 import { PlayersContext } from "../playersContext";
-// import io from "socket.io-client";
-
-// const socket = io();
+import { SocketContext } from "../socket";
 
 const MySwal = withReactContent(Swal);
 
-function Homepage({ socket }) {
+function Homepage() {
+  const socket = useContext(SocketContext);
   const { name, setName, room, setRoom } = useContext(MainContext);
   const { players, setPlayer } = useContext(PlayersContext);
 
@@ -47,6 +46,7 @@ function Homepage({ socket }) {
     };
     const room = ranRoom(1000, 9999);
     const owner = true;
+    setRoom(room);
     socket.emit("login", { name, room, owner }, (error) => {
       if (error) {
         MySwal.fire({
@@ -74,7 +74,6 @@ function Homepage({ socket }) {
         });
         return (document.querySelector("#room-name-input").value = "");
       }
-      // const p = [name];
       history.push({
         pathname: `/lobby/${room}`,
         state: {
@@ -84,23 +83,6 @@ function Homepage({ socket }) {
         },
       });
     });
-    // socket.emit("joinRoom", room);
-    // socket.on("joinedRoom", () => {
-    //   return history.push({
-    //     pathname: `/lobby/${room}`,
-    //     state: {
-    //       name: name,
-    //       owner: false,
-    //       room: room,
-    //     },
-    //   });
-    // });
-    // socket.on("joinError", (data) => {
-    //   MySwal.fire({
-    //     title: "Tidak bisa join room",
-    //     text: data,
-    //   }).then(setRoom(""));
-    // });
   };
 
   return (

@@ -4,17 +4,17 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { MainContext } from "../mainContext";
 import { PlayersContext } from "../playersContext";
-
+import { SocketContext } from "../socket";
 const MySwal = withReactContent(Swal);
 
-function Lobby({ socket }) {
+function Lobby() {
+  const socket = useContext(SocketContext);
   const history = useHistory();
   const params = useLocation();
   const [display, setDisplay] = useState({ display: "none" });
-  const [owner, setOwner] = useState(false);
 
-  const { players, setPlayer } = useContext(PlayersContext);
-  const { name } = useContext(MainContext);
+  const { players } = useContext(PlayersContext);
+  const { name, owner, setOwner } = useContext(MainContext);
   window.onpopstate = (e) => logout();
 
   const logout = () => {
@@ -26,7 +26,6 @@ function Lobby({ socket }) {
   }, [history, name]);
 
   useEffect(() => {
-    console.log(players);
     socket.on("notification", (notif) => {
       if (notif?.owner) {
         setOwner(true);
@@ -37,7 +36,7 @@ function Lobby({ socket }) {
         text: notif?.description,
       });
     });
-  }, [socket, setPlayer, players]);
+  }, [socket, setOwner]);
 
   useEffect(() => {
     if (params.state) {
@@ -47,7 +46,7 @@ function Lobby({ socket }) {
     if (owner) {
       setDisplay({ display: "block" });
     }
-  }, [owner, params]);
+  }, [owner, params, setOwner]);
 
   useEffect(() => {
     socket.on("play", () => {
